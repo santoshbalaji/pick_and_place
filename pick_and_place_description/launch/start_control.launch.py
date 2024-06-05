@@ -1,10 +1,9 @@
-import os
-
-from ament_index_python.packages import get_package_share_directory
-
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, RegisterEventHandler
-from launch.conditions import IfCondition
+from launch.actions import (
+    DeclareLaunchArgument,
+    OpaqueFunction,
+    RegisterEventHandler,
+)
 from launch.event_handlers import OnProcessExit
 from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution
 
@@ -12,23 +11,34 @@ from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
 
-def generate_launch_description():
-    # Declare arguments
-    declared_arguments = []
-    declared_arguments.append(
-        DeclareLaunchArgument(
-            "gui",
-            default_value="true",
-            description="Start RViz2 automatically with this launch file.",
-        )
+def launch_setup(context, *args, **kwargs):
+
+    # General arguments
+    use_gazebo = LaunchConfiguration("use_gazebo")
+    use_ignition = LaunchConfiguration("use_ignition")
+    use_fake_hardware = LaunchConfiguration("use_fake_hardware")
+
+    # xacro command for model generation
+    robot_description_content = Command(
+        [
+            PathJoinSubstitution([FindExecutable(name="xacro")]),
+            " ",
+            PathJoinSubstitution(
+                [FindPackageShare('pick_and_place_description'),
+                 "urdf", "turtlebot_arm.xacro"]
+            ),
+            " ",
+            "use_gazebo:=",
+            use_gazebo,
+            " ",
+            "use_ignition:=",
+            use_ignition,
+            " ",
+            "use_fake_hardware:=",
+            use_fake_hardware
+        ]
     )
-
-    # Initialize Arguments
-    gui = LaunchConfiguration("gui")
-
-    urdf_path = os.path.join(get_package_share_directory('pick_and_place_description'), 'urdf', 'turtlebot_arm.urdf')
-    urdf = open(urdf_path).read()
-    robot_description = {"robot_description": urdf}
+    robot_description = {"robot_description": robot_description_content}
 
     robot_controllers = PathJoinSubstitution(
         [
@@ -39,7 +49,8 @@ def generate_launch_description():
     )
 
     rviz_config_file = PathJoinSubstitution(
-        [FindPackageShare("pick_and_place_description"), "rviz", "visualize_robot.rviz"]
+        [FindPackageShare("pick_and_place_description"),
+         "rviz", "visualize_robot.rviz"]
     )
 
     control_node = Node(
@@ -64,20 +75,21 @@ def generate_launch_description():
         executable="rviz2",
         name="rviz2",
         output="log",
-        arguments=["-d", rviz_config_file],
-        condition=IfCondition(gui),
+        arguments=["-d", rviz_config_file]
     )
 
     joint_state_broadcaster_spawner = Node(
         package="controller_manager",
         executable="spawner",
-        arguments=["joint_state_broadcaster", "--controller-manager", "/controller_manager"],
+        arguments=["joint_state_broadcaster",
+                   "--controller-manager", "/controller_manager"],
     )
 
     robot_controller_spawner = Node(
         package="controller_manager",
         executable="spawner",
-        arguments=["joint_trajectory_position_controller", "--controller-manager", "/controller_manager"],
+        arguments=["joint_trajectory_position_controller",
+                   "--controller-manager", "/controller_manager"],
     )
 
     # Delay rviz start after `joint_state_broadcaster`
@@ -96,7 +108,7 @@ def generate_launch_description():
         )
     )
 
-    nodes = [
+    nodes_to_start = [
         control_node,
         robot_state_pub_node,
         joint_state_broadcaster_spawner,
@@ -104,4 +116,34 @@ def generate_launch_description():
         delay_robot_controller_spawner_after_joint_state_broadcaster_spawner,
     ]
 
-    return LaunchDescription(declared_arguments + nodes)
+    return nodes_to_start
+
+
+def generate_launch_description():
+    declared_arguments = []
+
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "use_gazebo",
+            default_value="false",
+            description="Switch to enable gazebo control hardware plugin or not",
+        )
+    )
+
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "use_ignition",
+            default_value="false",
+            description="Switch to enable ignition control hardware plugin or not",
+        )
+    )
+
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "use_fake_hardware",
+            default_value="true",
+            description="Switch to enable fake hardware hardware plugin or not",
+        )
+    )
+
+    return LaunchDescription(declared_arguments + [OpaqueFunction(function=launch_setup)])
