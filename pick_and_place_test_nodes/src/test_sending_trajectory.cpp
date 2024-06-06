@@ -101,40 +101,40 @@ int main(int argc, char * argv[])
   trajectory_msgs::msg::JointTrajectoryPoint point;
   point.time_from_start = rclcpp::Duration::from_seconds(0.0);  // start asap
   point.positions.resize(joint_names.size());
-  point.positions[0] = 0.10;
+  point.positions[0] = 0.0;
   point.positions[1] = 0.0;
-  point.positions[2] = 0.0;
-  point.positions[3] = 0.0;
+  point.positions[2] = 1.57;
+  point.positions[3] = 1.57;
   
-  trajectory_msgs::msg::JointTrajectoryPoint point2;
-  point2.time_from_start = rclcpp::Duration::from_seconds(1.0);
-  point2.positions.resize(joint_names.size());
-  point2.positions[0] = 0.20;
-  point2.positions[1] = 0.0;
-  point2.positions[2] = 0.0;
-  point2.positions[3] = 0.0;
+  // trajectory_msgs::msg::JointTrajectoryPoint point2;
+  // point2.time_from_start = rclcpp::Duration::from_seconds(1.0);
+  // point2.positions.resize(joint_names.size());
+  // point2.positions[0] = 0.0;
+  // point2.positions[1] = 0.0;
+  // point2.positions[2] = 0.0;
+  // point2.positions[3] = 2.50;
   
-  trajectory_msgs::msg::JointTrajectoryPoint point3;
-  point3.time_from_start = rclcpp::Duration::from_seconds(2.0);
-  point3.positions.resize(joint_names.size());
-  point3.positions[0] = 0.30;
-  point3.positions[1] = 0.0;
-  point3.positions[2] = 0.0;
-  point3.positions[3] = 0.0;
+  // trajectory_msgs::msg::JointTrajectoryPoint point3;
+  // point3.time_from_start = rclcpp::Duration::from_seconds(2.0);
+  // point3.positions.resize(joint_names.size());
+  // point3.positions[0] = 0.0;
+  // point3.positions[1] = 0.0;
+  // point3.positions[2] = 0.0;
+  // point3.positions[3] = 3.00;
 
 
-  trajectory_msgs::msg::JointTrajectoryPoint point4;
-  point4.time_from_start = rclcpp::Duration::from_seconds(3.0);
-  point4.positions.resize(joint_names.size());
-  point4.positions[0] = 0.40;
-  point4.positions[1] = 0.0;
-  point4.positions[2] = 0.0;
-  point4.positions[3] = 0.0;
+  // trajectory_msgs::msg::JointTrajectoryPoint point4;
+  // point4.time_from_start = rclcpp::Duration::from_seconds(3.0);
+  // point4.positions.resize(joint_names.size());
+  // point4.positions[0] = 0.0;
+  // point4.positions[1] = 0.0;
+  // point4.positions[2] = 1.5;
+  // point4.positions[3] = 3.14;
 
   points.push_back(point);
-  points.push_back(point2);
-  points.push_back(point3);
-  points.push_back(point4);
+  // points.push_back(point2);
+  // points.push_back(point3);
+  // points.push_back(point4);
 
   rclcpp_action::Client<control_msgs::action::FollowJointTrajectory>::SendGoalOptions opt;
   opt.goal_response_callback = std::bind(common_goal_response, std::placeholders::_1);

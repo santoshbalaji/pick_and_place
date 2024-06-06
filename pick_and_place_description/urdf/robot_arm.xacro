@@ -320,6 +320,12 @@
       <plugin filename="libgazebo_ros2_control.so" name="gazebo_ros2_control">
         <parameters>$(find pick_and_place_description)/config/robot_controller.yaml</parameters>
       </plugin>
+      <plugin filename='libgazebo_ros_vacuum_gripper.so' name='vacuum_gripper'>
+        <link_name>top_wrist</link_name>
+        <max_distance>5.0</max_distance>
+        <max_force>500</max_force>
+        <fixed>ground_plane</fixed>
+      </plugin>
     </gazebo>
   </xacro:if>
 
