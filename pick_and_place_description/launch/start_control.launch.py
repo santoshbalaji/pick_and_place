@@ -25,7 +25,7 @@ def launch_setup(context, *args, **kwargs):
             " ",
             PathJoinSubstitution(
                 [FindPackageShare('pick_and_place_description'),
-                 "urdf", "turtlebot_arm.xacro"]
+                 "urdf", "robot_arm.xacro"]
             ),
             " ",
             "use_gazebo:=",

@@ -104,16 +104,19 @@ def launch_setup(context, *args, **kwargs):
     # gazebo node with empty world
     gazebo_node = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([os.path.join(
-            get_package_share_directory('gazebo_ros'), 'launch'), '/gazebo.launch.py'])
+            get_package_share_directory('ros_ign_gazebo'), 'launch'), '/ign_gazebo.launch.py']),
+        launch_arguments=[('gz_args', [' -r -v 4 empty.sdf'])],
     )
 
     # node to spawn robot model in gazebo
     spawn_entity_node = Node(
-        package='gazebo_ros',
-        executable='spawn_entity.py',
+        package='ros_gz_sim',
+        executable='create',
+        output='screen',
         arguments=['-topic', 'robot_description',
-                   '-entity', 'robot_arm'],
-        output='screen')
+                   '-name', 'robot_arm',
+                   '-allow_renaming', 'true'],
+    )
 
     nodes_to_start = [
         robot_state_pub_node,
@@ -134,7 +137,7 @@ def generate_launch_description():
     declared_arguments.append(
         DeclareLaunchArgument(
             "use_gazebo",
-            default_value="true",
+            default_value="false",
             description="Switch to enable gazebo control hardware plugin or not",
         )
     )
@@ -142,7 +145,7 @@ def generate_launch_description():
     declared_arguments.append(
         DeclareLaunchArgument(
             "use_ignition",
-            default_value="false",
+            default_value="true",
             description="Switch to enable ignition control hardware plugin or not",
         )
     )

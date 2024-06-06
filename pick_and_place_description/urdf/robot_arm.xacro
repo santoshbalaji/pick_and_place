@@ -323,7 +323,7 @@
     </gazebo>
   </xacro:if>
 
-  <xacro:if value="$(arg sim_ignition)">
+  <xacro:if value="$(arg use_ignition)">
     <gazebo>
       <plugin filename="libign_ros2_control-system.so" name="ign_ros2_control::IgnitionROS2ControlPlugin">
         <parameters>$(find pick_and_place_description)/config/robot_controller.yaml</parameters>
