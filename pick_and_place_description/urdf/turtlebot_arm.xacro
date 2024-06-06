@@ -5,7 +5,24 @@
   <xacro:arg name="use_ignition" default="false" />
   <xacro:arg name="use_fake_hardware" default="false" />
 
-  <link name="base_link" />
+  <link name="world" />
+
+  <link name="base_link">
+    <visual>
+      <geometry>
+        <box size="0.3 0.2 0.1"/>
+      </geometry>
+      <origin xyz="0 0 0"/>
+      <material name="green">
+        <color rgba="0 0.8 .8 1"/>
+      </material>
+    </visual>
+    <inertial>
+      <mass value="100"/>
+      <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
+    </inertial>
+  </link>
+
   <link name="arm_base">
     <inertial>
       <origin
@@ -26,7 +43,7 @@
         xyz="0 0 0"
         rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://pick_and_place_description/meshes/arm_base.stl" />
+        <mesh filename="file://$(find pick_and_place_description)/meshes/arm_base.stl" />
       </geometry>
       <material
         name="">
@@ -39,7 +56,7 @@
         xyz="0 0 0"
         rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://pick_and_place_description/meshes/arm_base.stl" />
+        <mesh filename="file://$(find pick_and_place_description)/meshes/arm_base.stl" />
       </geometry>
     </collision>
   </link>
@@ -64,7 +81,7 @@
         xyz="0 0 0"
         rpy="0 -1.5708 0" />
       <geometry>
-        <mesh filename="package://pick_and_place_description/meshes/bicep.stl" />
+        <mesh filename="file://$(find pick_and_place_description)/meshes/bicep.stl" />
       </geometry>
       <material
         name="">
@@ -77,7 +94,7 @@
         xyz="0 0 0"
         rpy="0 -1.5708 0" />
       <geometry>
-        <mesh filename="package://pick_and_place_description/meshes/bicep.stl" />
+        <mesh filename="file://$(find pick_and_place_description)/meshes/bicep.stl" />
       </geometry>
     </collision>
   </link>
@@ -102,7 +119,7 @@
         xyz="0 0 0.13522"
         rpy="3.14 0 1.5708" />
       <geometry>
-        <mesh filename="package://pick_and_place_description/meshes/wrist.stl" />
+        <mesh filename="file://$(find pick_and_place_description)/meshes/wrist.stl" />
       </geometry>
       <material
         name="">
@@ -115,7 +132,7 @@
         xyz="0 0 0.13522"
         rpy="3.14 0 1.5708" />
       <geometry>
-        <mesh filename="package://pick_and_place_description/meshes/wrist.stl" />
+        <mesh filename="file://$(find pick_and_place_description)/meshes/wrist.stl" />
       </geometry>
     </collision>
   </link>
@@ -140,7 +157,7 @@
         xyz="0.0 0.05163 0.20994"
         rpy="0 -1.5708 0" />
       <geometry>
-        <mesh filename="package://pick_and_place_description/meshes/elbow.stl" />
+        <mesh filename="file://$(find pick_and_place_description)/meshes/elbow.stl" />
       </geometry>
       <material
         name="">
@@ -153,7 +170,7 @@
         xyz="0.0 0.05163 0.20994"
         rpy="0 -1.5708 0" />
       <geometry>
-        <mesh filename="package://pick_and_place_description/meshes/elbow.stl" />
+        <mesh filename="file://$(find pick_and_place_description)/meshes/elbow.stl" />
       </geometry>
     </collision>
   </link>
@@ -178,7 +195,7 @@
         xyz="0 0 0.13522"
         rpy="3.14 0 1.5708" />
       <geometry>
-        <mesh filename="package://pick_and_place_description/meshes/wrist.stl" />
+        <mesh filename="file://$(find pick_and_place_description)/meshes/wrist.stl" />
       </geometry>
       <material
         name="">
@@ -191,18 +208,23 @@
         xyz="0 0 0.13522"
         rpy="3.14 0 1.5708" />
       <geometry>
-        <mesh filename="package://pick_and_place_description/meshes/wrist.stl" />
+        <mesh filename="file://$(find pick_and_place_description)/meshes/wrist.stl" />
       </geometry>
     </collision>
   </link>
 
   <!--######################################################################-->
+  <joint name="base_joint" type="fixed">
+    <origin rpy="0 0 0" xyz="0 0 0" />
+    <parent link="world" />
+    <child link="base_link" />
+  </joint>
 
   <joint name="arm_base_joint" type="continuous">
     <axis xyz="0 0 1" />
     <parent link="base_link" />
     <child link="arm_base" />
-    <origin rpy="0 0 0" xyz="0.0 0.0 0.1" />
+    <origin rpy="0 0 0" xyz="0.0 0.0 0.0" />
   </joint>
 
   <joint name="shoulder_joint" type="continuous">
@@ -220,7 +242,7 @@
   </joint>
 
   <joint name="elbow_joint" type="fixed">
-    <!-- <axis xyz="0 0 1"/> -->
+    <axis xyz="0 0 1"/>
     <parent link="bottom_wrist" />
     <child link="elbow" />
     <origin rpy="0 0 0" xyz="0.0 0 0.13522" />
@@ -252,41 +274,60 @@
         <param name="min">-1</param>
         <param name="max">1</param>
       </command_interface>
-      <state_interface name="position" />
+      <state_interface name="position">
+        <param name="initial_value">0.0</param>
+      </state_interface>
       <state_interface name="velocity" />
+      <state_interface name="effort" />
     </joint>
     <joint name="shoulder_joint">
       <command_interface name="position">
         <param name="min">-1</param>
         <param name="max">1</param>
       </command_interface>
-      <state_interface name="position" />
+      <state_interface name="position">
+        <param name="initial_value">0.0</param>
+      </state_interface>
       <state_interface name="velocity" />
+      <state_interface name="effort" />
     </joint>
     <joint name="bottom_wrist_joint">
       <command_interface name="position">
         <param name="min">-1</param>
         <param name="max">1</param>
       </command_interface>
-      <state_interface name="position" />
+      <state_interface name="position">
+        <param name="initial_value">0.0</param>
+      </state_interface>
       <state_interface name="velocity" />
+      <state_interface name="effort" />
     </joint>
     <joint name="top_wrist_joint">
       <command_interface name="position">
         <param name="min">-1</param>
         <param name="max">1</param>
       </command_interface>
-      <state_interface name="position" />
+      <state_interface name="position">
+        <param name="initial_value">0.0</param>
+      </state_interface>
       <state_interface name="velocity" />
+      <state_interface name="effort" />
     </joint>
   </ros2_control>
 
   <xacro:if value="$(arg use_gazebo)">
-    <gazebo reference="world">
-    </gazebo>
     <gazebo>
       <plugin filename="libgazebo_ros2_control.so" name="gazebo_ros2_control">
         <parameters>$(find pick_and_place_description)/config/robot_controller.yaml</parameters>
+      </plugin>
+    </gazebo>
+  </xacro:if>
+
+  <xacro:if value="$(arg sim_ignition)">
+    <gazebo>
+      <plugin filename="libign_ros2_control-system.so" name="ign_ros2_control::IgnitionROS2ControlPlugin">
+        <parameters>$(find pick_and_place_description)/config/robot_controller.yaml</parameters>
+        <controller_manager_node_name>controller_manager</controller_manager_node_name>
       </plugin>
     </gazebo>
   </xacro:if>
