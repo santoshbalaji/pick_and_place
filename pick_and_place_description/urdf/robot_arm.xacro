@@ -220,25 +220,28 @@
     <child link="base_link" />
   </joint>
 
-  <joint name="arm_base_joint" type="continuous">
+  <joint name="arm_base_joint" type="revolute">
     <axis xyz="0 0 1" />
     <parent link="base_link" />
     <child link="arm_base" />
     <origin rpy="0 0 0" xyz="0.0 0.0 0.0" />
+    <limit effort="0" lower="-3.14" upper="3.14" velocity="3.67"/>
   </joint>
 
-  <joint name="shoulder_joint" type="continuous">
+  <joint name="shoulder_joint" type="revolute">
     <axis xyz="0 1 0" />
     <parent link="arm_base" />
     <child link="bicep" />
     <origin rpy="0 0 1.5708" xyz="-0.05166 0.0 0.20271" />
+    <limit effort="0" lower="-3.14" upper="3.14" velocity="3.67"/>
   </joint>
 
-  <joint name="bottom_wrist_joint" type="continuous">
+  <joint name="bottom_wrist_joint" type="revolute">
     <axis xyz="0 1 0" />
     <parent link="bicep" />
     <child link="bottom_wrist" />
     <origin rpy="0 0 0" xyz="0.0 -0.05194 0.269" />
+    <limit effort="0" lower="-3.14" upper="3.14" velocity="3.67"/>
   </joint>
 
   <joint name="elbow_joint" type="fixed">
@@ -248,11 +251,12 @@
     <origin rpy="0 0 0" xyz="0.0 0 0.13522" />
   </joint>
 
-  <joint name="top_wrist_joint" type="continuous">
+  <joint name="top_wrist_joint" type="revolute">
     <axis xyz="0 1 0" />
     <parent link="elbow" />
     <child link="top_wrist" />
     <origin rpy="0 0 0" xyz="0.0 0 0.20994" />
+    <limit effort="0" lower="-3.14" upper="3.14" velocity="3.67"/>
   </joint>
 
   <!--######################################################################-->
