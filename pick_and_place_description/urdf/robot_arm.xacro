@@ -271,8 +271,8 @@
     </hardware>
     <joint name="arm_base_joint">
       <command_interface name="position">
-        <param name="min">-1</param>
-        <param name="max">1</param>
+        <param name="min">-180</param>
+        <param name="max">180</param>
       </command_interface>
       <state_interface name="position">
         <param name="initial_value">0.0</param>
@@ -282,8 +282,8 @@
     </joint>
     <joint name="shoulder_joint">
       <command_interface name="position">
-        <param name="min">-1</param>
-        <param name="max">1</param>
+        <param name="min">-180</param>
+        <param name="max">180</param>
       </command_interface>
       <state_interface name="position">
         <param name="initial_value">0.0</param>
@@ -293,8 +293,8 @@
     </joint>
     <joint name="bottom_wrist_joint">
       <command_interface name="position">
-        <param name="min">-1</param>
-        <param name="max">1</param>
+        <param name="min">-180</param>
+        <param name="max">180</param>
       </command_interface>
       <state_interface name="position">
         <param name="initial_value">0.0</param>
@@ -304,8 +304,8 @@
     </joint>
     <joint name="top_wrist_joint">
       <command_interface name="position">
-        <param name="min">-1</param>
-        <param name="max">1</param>
+        <param name="min">-180</param>
+        <param name="max">180</param>
       </command_interface>
       <state_interface name="position">
         <param name="initial_value">0.0</param>
