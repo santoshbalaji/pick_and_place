@@ -20,6 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+          'object_pose_detector = pick_and_place_detection.object_pose_detector:main'
         ],
     },
 )

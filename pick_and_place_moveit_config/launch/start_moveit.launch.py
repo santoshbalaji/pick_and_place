@@ -46,23 +46,6 @@ def launch_setup(context, *args, **kwargs):
     )
     robot_description = {"robot_description": robot_description_content}
 
-    # MoveIt Configuration
-    # robot_description_semantic_content = Command(
-    #     [
-    #         PathJoinSubstitution([FindExecutable(name="xacro")]),
-    #         " ",
-    #         PathJoinSubstitution(
-    #             [FindPackageShare(moveit_config_package), "srdf", moveit_config_file]
-    #         ),
-    #         " ",
-    #         "name:=",
-    #         "robot_arm",
-    #         " ",
-    #         "prefix:=",
-    #         prefix,
-    #         " ",
-    #     ]
-    # )
     bringup_dir = get_package_share_directory('pick_and_place_moveit_config')
     srdf_path = os.path.join(bringup_dir, 'srdf', 'robot_arm.srdf')
     srdf = open(srdf_path).read()
@@ -114,11 +97,6 @@ def launch_setup(context, *args, **kwargs):
         "publish_transforms_updates": True,
     }
 
-    # warehouse_ros_config = {
-    #     "warehouse_plugin": "warehouse_ros_sqlite::DatabaseConnection",
-    #     "warehouse_host": warehouse_sqlite_path,
-    # }
-
     # Start the actual move_group node/action server
     move_group_node = Node(
         package="moveit_ros_move_group",
@@ -133,8 +111,7 @@ def launch_setup(context, *args, **kwargs):
             trajectory_execution,
             moveit_controllers,
             planning_scene_monitor_parameters,
-            {"use_sim_time": use_sim_time},
-            # warehouse_ros_config,
+            {"use_sim_time": True},
         ],
     )
 
@@ -156,7 +133,6 @@ def launch_setup(context, *args, **kwargs):
             robot_description_kinematics,
             robot_description_planning,
             {"use_sim_time": True},
-            # warehouse_ros_config,
         ],
     )
 
