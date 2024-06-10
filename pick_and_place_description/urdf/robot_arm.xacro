@@ -213,6 +213,22 @@
     </collision>
   </link>
 
+  <link name="camera_link">
+    <visual>
+      <geometry>
+        <box size="0.1 0.1 0.1"/>
+      </geometry>
+      <origin xyz="0 0 0"/>
+      <material name="green">
+        <color rgba="0 0.8 .8 1"/>
+      </material>
+    </visual>
+    <inertial>
+      <mass value="1"/>
+      <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
+    </inertial>
+  </link>
+
   <!--######################################################################-->
   <joint name="base_joint" type="fixed">
     <origin rpy="0 0 0" xyz="0 0 0" />
@@ -257,6 +273,12 @@
     <child link="top_wrist" />
     <origin rpy="0 0 0" xyz="0.0 0 0.20994" />
     <limit effort="0" lower="-3.14" upper="3.14" velocity="3.67"/>
+  </joint>
+
+  <joint name="camera_joint" type="fixed">
+    <origin rpy="0 1.57 0" xyz="0 0 1.2" />
+    <parent link="world" />
+    <child link="camera_link" />
   </joint>
 
   <!--######################################################################-->
@@ -326,8 +348,7 @@
       </plugin>
       <plugin filename='libgazebo_ros_vacuum_gripper.so' name='vacuum_gripper'>
         <link_name>top_wrist</link_name>
-        <max_distance>5.0</max_distance>
-        <max_force>500</max_force>
+        <max_distance>0.5</max_distance>
         <fixed>ground_plane</fixed>
       </plugin>
     </gazebo>
@@ -341,5 +362,39 @@
       </plugin>
     </gazebo>
   </xacro:if>
+
+  <gazebo reference="camera_link">
+    <sensor type="depth" name="depth_camera">
+      <update_rate>60</update_rate>
+      <visualize>false</visualize>
+      <camera>
+        <horizontal_fov>1.92</horizontal_fov>
+        <image>
+          <width>640</width>
+          <height>480</height>
+          <format>B8G8R8</format>
+        </image>
+        <depth_camera>
+        </depth_camera>
+        <clip>
+          <near>0.02</near>
+          <far>300</far>
+        </clip>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.007</stddev>
+        </noise>
+      </camera>
+      <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
+        <ros>
+          <namespace>/</namespace>
+        </ros>
+        <camera_name>depth_camera</camera_name>
+        <min_depth>0.1</min_depth>
+        <max_depth>500</max_depth>
+      </plugin>
+    </sensor>
+  </gazebo>
 
 </robot>

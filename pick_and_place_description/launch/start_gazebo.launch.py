@@ -80,7 +80,6 @@ def launch_setup(context, *args, **kwargs):
                    "--controller-manager", "/controller_manager"],
     )
 
-    # Delay rviz start after `joint_state_broadcaster`
     delay_rviz_after_joint_state_broadcaster_spawner = RegisterEventHandler(
         event_handler=OnProcessExit(
             target_action=joint_state_broadcaster_spawner,
@@ -101,19 +100,32 @@ def launch_setup(context, *args, **kwargs):
                    "/controller_manager", "--stopped"],
     )
 
-    # gazebo node with empty world
     gazebo_node = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([os.path.join(
             get_package_share_directory('gazebo_ros'), 'launch'), '/gazebo.launch.py'])
     )
 
-    # node to spawn robot model in gazebo
     spawn_entity_node = Node(
         package='gazebo_ros',
         executable='spawn_entity.py',
         arguments=['-topic', 'robot_description',
                    '-entity', 'robot_arm'],
         output='screen')
+    
+    static_transform_publisher_for_camera = Node(
+        package='tf2_ros',
+        executable='static_transform_publisher',
+        arguments = ["0", "0", "1.2", "1.57", "3.14", "0.0", "base_link", "camera_link"],
+        output='screen',
+        parameters=[{'use_sim_time': True}]
+    )
+
+    delay_stfpublisher_after_gazebo_spawner = RegisterEventHandler(
+        event_handler=OnProcessExit(
+            target_action=spawn_entity_node,
+            on_exit=[static_transform_publisher_for_camera],
+        )
+    )
 
     nodes_to_start = [
         robot_state_pub_node,
@@ -123,6 +135,7 @@ def launch_setup(context, *args, **kwargs):
         initial_joint_controller_spawner_started,
         gazebo_node,
         spawn_entity_node,
+        delay_stfpublisher_after_gazebo_spawner,
     ]
 
     return nodes_to_start

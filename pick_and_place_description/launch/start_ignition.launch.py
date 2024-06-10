@@ -26,12 +26,10 @@ def launch_setup(context, *args, **kwargs):
     else:
         os.environ['GAZEBO_MODEL_PATH'] =  pkg_share_path
 
-    # General arguments
     use_gazebo = LaunchConfiguration("use_gazebo")
     use_ignition = LaunchConfiguration("use_ignition")
     use_fake_hardware = LaunchConfiguration("use_fake_hardware")
 
-    # xacro command for model generation
     robot_description_content = Command(
         [
             PathJoinSubstitution([FindExecutable(name="xacro")]),
@@ -80,7 +78,6 @@ def launch_setup(context, *args, **kwargs):
                    "--controller-manager", "/controller_manager"],
     )
 
-    # Delay rviz start after `joint_state_broadcaster`
     delay_rviz_after_joint_state_broadcaster_spawner = RegisterEventHandler(
         event_handler=OnProcessExit(
             target_action=joint_state_broadcaster_spawner,
@@ -101,14 +98,12 @@ def launch_setup(context, *args, **kwargs):
                    "/controller_manager", "--stopped"],
     )
 
-    # gazebo node with empty world
     gazebo_node = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([os.path.join(
             get_package_share_directory('ros_ign_gazebo'), 'launch'), '/ign_gazebo.launch.py']),
         launch_arguments=[('gz_args', [' -r -v 4 empty.sdf'])],
     )
 
-    # node to spawn robot model in gazebo
     spawn_entity_node = Node(
         package='ros_gz_sim',
         executable='create',
@@ -116,6 +111,21 @@ def launch_setup(context, *args, **kwargs):
         arguments=['-topic', 'robot_description',
                    '-name', 'robot_arm',
                    '-allow_renaming', 'true'],
+    )
+
+    static_transform_publisher_for_camera = Node(
+        package='tf2_ros',
+        executable='static_transform_publisher',
+        arguments = ["0", "0", "1.2", "1.57", "3.14", "0.0", "base_link", "camera_link"],
+        output='screen',
+        parameters=[{'use_sim_time': True}]
+    )
+
+    delay_stfpublisher_after_gazebo_spawner = RegisterEventHandler(
+        event_handler=OnProcessExit(
+            target_action=spawn_entity_node,
+            on_exit=[static_transform_publisher_for_camera],
+        )
     )
 
     nodes_to_start = [
@@ -126,6 +136,7 @@ def launch_setup(context, *args, **kwargs):
         initial_joint_controller_spawner_started,
         gazebo_node,
         spawn_entity_node,
+        delay_stfpublisher_after_gazebo_spawner,
     ]
 
     return nodes_to_start
