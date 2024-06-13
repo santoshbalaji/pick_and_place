@@ -7,6 +7,7 @@ from launch import LaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.actions import (
     DeclareLaunchArgument,
+    ExecuteProcess,
     OpaqueFunction,
     RegisterEventHandler,
     IncludeLaunchDescription,
@@ -71,31 +72,23 @@ def launch_setup(context, *args, **kwargs):
         arguments=["-d", rviz_config_file]
     )
 
-    joint_state_broadcaster_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=["joint_state_broadcaster",
-                   "--controller-manager", "/controller_manager"],
+    load_joint_state_broadcaster = ExecuteProcess(
+        cmd=['ros2', 'control', 'load_controller', '--set-state', 'active',
+             'joint_state_broadcaster'],
+        output='screen'
+    )
+
+    load_joint_trajectory_controller = ExecuteProcess(
+        cmd=['ros2', 'control', 'load_controller', '--set-state', 'active',
+             'joint_trajectory_position_controller'],
+        output='screen'
     )
 
     delay_rviz_after_joint_state_broadcaster_spawner = RegisterEventHandler(
         event_handler=OnProcessExit(
-            target_action=joint_state_broadcaster_spawner,
+            target_action=load_joint_state_broadcaster,
             on_exit=[rviz_node],
         )
-    )
-
-    initial_joint_controller_spawner_started = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=["joint_trajectory_position_controller", "-c", "/controller_manager"],
-    )
-
-    initial_joint_controller_spawner_stopped = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=["joint_trajectory_position_controller", "-c",
-                   "/controller_manager", "--stopped"],
     )
 
     gazebo_node = IncludeLaunchDescription(
@@ -113,30 +106,43 @@ def launch_setup(context, *args, **kwargs):
                    '-allow_renaming', 'true'],
     )
 
-    static_transform_publisher_for_camera = Node(
-        package='tf2_ros',
-        executable='static_transform_publisher',
-        arguments = ["0", "0", "1.2", "1.57", "3.14", "0.0", "base_link", "camera_link"],
-        output='screen',
-        parameters=[{'use_sim_time': True}]
-    )
-
-    delay_stfpublisher_after_gazebo_spawner = RegisterEventHandler(
+    delay_broadcaster_after_spawn_entity_node = RegisterEventHandler(
         event_handler=OnProcessExit(
             target_action=spawn_entity_node,
-            on_exit=[static_transform_publisher_for_camera],
+            on_exit=[load_joint_state_broadcaster],
         )
     )
 
+    delay_controller_after_broadcaster_node = RegisterEventHandler(
+        event_handler=OnProcessExit(
+            target_action=load_joint_state_broadcaster,
+            on_exit=[load_joint_trajectory_controller],
+        )
+    )
+
+    # static_transform_publisher_for_camera = Node(
+    #     package='tf2_ros',
+    #     executable='static_transform_publisher',
+    #     arguments = ["0", "0", "1.2", "1.57", "3.14", "0.0", "base_link", "camera_link"],
+    #     output='screen',
+    #     parameters=[{'use_sim_time': True}]
+    # )
+
+    # delay_stfpublisher_after_gazebo_spawner = RegisterEventHandler(
+    #     event_handler=OnProcessExit(
+    #         target_action=spawn_entity_node,
+    #         on_exit=[static_transform_publisher_for_camera],
+    #     )
+    # )
+
     nodes_to_start = [
         robot_state_pub_node,
-        joint_state_broadcaster_spawner,
         delay_rviz_after_joint_state_broadcaster_spawner,
-        initial_joint_controller_spawner_stopped,
-        initial_joint_controller_spawner_started,
+        delay_broadcaster_after_spawn_entity_node,
+        delay_controller_after_broadcaster_node,
         gazebo_node,
         spawn_entity_node,
-        delay_stfpublisher_after_gazebo_spawner,
+        # delay_stfpublisher_after_gazebo_spawner,
     ]
 
     return nodes_to_start
