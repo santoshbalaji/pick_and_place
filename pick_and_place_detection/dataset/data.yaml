@@ -1,0 +1,13 @@
+train: train/images
+val: valid/images
+test: test/images
+
+nc: 1
+names: ['box']
+
+roboflow:
+  workspace: testbench-lrlpt
+  project: medium_article
+  version: 1
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/testbench-lrlpt/medium_article/dataset/1
