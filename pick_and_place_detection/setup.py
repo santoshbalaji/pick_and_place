@@ -15,8 +15,8 @@ setup(
     zip_safe=True,
     maintainer='santosh',
     maintainer_email='selvarajs@artc.a-star.edu.sg',
-    description='TODO: Package description',
-    license='TODO: License declaration',
+    description='object pose estimation package',
+    license='MIT License',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [

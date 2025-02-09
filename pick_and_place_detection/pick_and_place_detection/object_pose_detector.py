@@ -1,105 +1,167 @@
 import rclpy
 from rclpy.node import Node
+
 from sensor_msgs.msg import Image, PointCloud2
 from sensor_msgs_py import point_cloud2
+
+from geometry_msgs.msg import PoseArray, Pose
+
 from cv_bridge import CvBridge, CvBridgeError
 import cv2
+
 import numpy as np
+
 from message_filters import ApproximateTimeSynchronizer, Subscriber
+
+from ultralytics import YOLO
+import torch
+
+from typing import List
+
 
 class ObjectPoseDetector(Node):
     def __init__(self):
         super().__init__('object_pose_detector_node')
-        self.image_subscription = Subscriber(
+        self.__image_subscription = Subscriber(
             self,
             Image,
             '/depth_camera/image_raw')
-        self.pointcloud_sub = Subscriber(self, PointCloud2, '/depth_camera/points')
-        
-        self.ts = ApproximateTimeSynchronizer([self.image_subscription, self.pointcloud_sub], 10, 0.1)
-        self.ts.registerCallback(self.listener_callback)
-        
-        self.bridge = CvBridge()
+        self.__pointcloud_sub = Subscriber(
+            self, 
+            PointCloud2, 
+            '/depth_camera/points')
+        self.__object_poses_publisher = self.create_publisher(
+            PoseArray,
+            '/detected_poses',
+            10
+        )
 
-    def listener_callback(self, img_msg, pc_msg):
+        self.__ts = ApproximateTimeSynchronizer(
+            fs=[self.__image_subscription, self.__pointcloud_sub],
+            queue_size=10,
+            slop=0.1)
+        self.__ts.registerCallback(self.__listener_callback)
+        
+        self.__bridge = CvBridge()
+
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.__yolo = YOLO(
+            "/home/santoshbalaji/dev_ws/src/pick_and_place/pick_and_place_detection/weights/best.pt").to(device)
+        self.get_logger().info("started object pose detector node")
+
+
+    def __listener_callback(self, img_msg : Image, pc_msg : PointCloud2):
         try:
-            cv_image = self.bridge.imgmsg_to_cv2(img_msg, desired_encoding='bgr8')
+            cv_image = self.__bridge.imgmsg_to_cv2(
+                img_msg, 
+                desired_encoding='bgr8')
+            height, width, _ = cv_image.shape
 
-            centroids, processed_image = self.process_image(cv_image)
+            records = self.__predict_bounding_boxes(image=cv_image)
+            object_poses = self.__get_depth_info(
+                pc_msg=pc_msg,
+                centroids =records,
+                width=width,
+                height=height,
+            )
 
-            z_values = self.get_z_values(pc_msg, centroids)
-
-            cv2.imshow('Processed Image', processed_image)
-            cv2.waitKey(1)
-
-            for i, (x, y, z) in enumerate(z_values):
-                self.get_logger().info(f'Centroid {i}: ({x}, {y}, {z})')
+            pose_array = PoseArray()
+            for object_pose in object_poses:
+                self.get_logger().info("object pose: " + str(object_pose))
+                pose = Pose()
+                pose.position.x = object_pose[0]
+                pose.position.y = object_pose[1]
+                pose.position.z = object_pose[2]
+                pose_array.poses.append(pose)
+            
+            self.__object_poses_publisher.publish(pose_array)
 
         except CvBridgeError as e:
             self.get_logger().info(f'CvBridgeError: {e}')
 
-    def process_image(self, image):
-        rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-        lower_color = np.array([5, 250, 5])
-        upper_color = np.array([5, 255, 5])
-        mask = cv2.inRange(rgb, lower_color, upper_color)
+    def __predict_bounding_boxes(self, image : Image) -> List[List[float]]:
+        results = self.__yolo(image, conf=0.5)
+        height, width, _ = image.shape
 
-        segmented_image = cv2.bitwise_and(image, image, mask=mask)
+        records = list()
+        for result in results:
+            for box in result.boxes:
+                record = list()
 
-        gray = cv2.cvtColor(segmented_image, cv2.COLOR_BGR2GRAY)
+                x1, y1, x2, y2 = map(int, box.xyxy[0])
+                conf = box.conf[0].item()
+                cls = int(box.cls[0].item())
 
-        contours, _ = cv2.findContours(gray, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+                print(x1, y1)
+                print(x2, y2)
+                print(((x1 + x2) / 2))
+                print(((y1 + y2) / 2))
 
-        centroids = []
+                x_center = ((x1 + x2) / (2 * width))
+                y_center = ((y1 + y2) / (2 * height))
+                coordinate_width = ((x2 - x1) / width)
+                coordinate_height = ((y2 - y1) / height)
 
-        for contour in contours:
-            M = cv2.moments(contour)
-            if M["m00"] != 0:
-                cX = int(M["m10"] / M["m00"])
-                cY = int(M["m01"] / M["m00"])
-            else:
-                cX = 0
-                cY = 0
+                record.append(x_center)
+                record.append(y_center)
+                record.append(coordinate_width)
+                record.append(coordinate_height)
+                record.append(conf)
+                record.append(cls)
+                record.append(((x1 + x2) / (2)))
+                record.append(((y1 + y2) / (2)))
 
-            centroids.append((cX, cY))
+                records.append(record)
 
-            cv2.drawContours(image, [contour], -1, (0, 255, 0), 2)
-            cv2.circle(image, (cX, cY), 5, (255, 0, 0), -1)
-            cv2.putText(image, f"({cX}, {cY})", (cX - 20, cY - 20),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+                self.get_logger().info("x_center: " + str(record[0]))
+                self.get_logger().info("y_center: " + str(record[1]))
+                self.get_logger().info("coordinate width: " + str(record[2]))
+                self.get_logger().info("coordinate height: " + str(record[3]))
+                self.get_logger().info("confidence score: " + str(record[4]))
+                self.get_logger().info("class id: " + str(record[5]))
+        return records
 
-        return centroids, image
 
-    def get_z_values(self, pc_msg, centroids):
-        z_values = []
+    def __get_depth_info(self, pc_msg, centroids, width, height):
+        final_values = list()
 
-        # Read points from the point cloud message
-        pc_data = list(point_cloud2.read_points(pc_msg, field_names=("x", "y", "z"), skip_nans=True))
+        for centroid in centroids:
+            final_value = list()
+            cX = centroid[0]
+            cY = centroid[1]
 
-        if len(pc_data) == 0:
-            self.get_logger().info('No points in the point cloud')
-            return z_values
+            pc_data = point_cloud2.read_points(
+                pc_msg,
+                field_names=("x", "y", "z"), 
+                skip_nans=False)
+            print(pc_data.shape)
+            for point in pc_data:
+                if point[2] < 1.15 and point[2] > 1.00:
+                    # print(point[0], point[1], point[2])
+                    pass
+            
+            print(centroid[6])
+            print(centroid[7])
+            pc_data = point_cloud2.read_points(
+                pc_msg,
+                field_names=("x", "y", "z"), 
+                skip_nans=False,
+                uvs=
+                    np.array([round(centroid[6]), round(centroid[7])])
+                )
+            print(pc_data)
 
-        # Convert list of tuples to 2D numpy array
-        pc_array = np.array(pc_data)
+            for point in pc_data:
+                _, _, z = point
+                final_value.append(round(cX, 4))
+                final_value.append(round(cY, 4))
+                final_value.append(round(float(z), 4))
+                print(point)
+                # break
+            final_values.append(final_value)
+        return final_values
 
-        if pc_array.ndim == 1:
-            self.get_logger().info('Point cloud array is 1-dimensional, converting to 2-dimensional')
-            pc_array = np.array([list(point) for point in pc_data])
-
-        self.get_logger().info(f'Point cloud array shape: {pc_array.shape}')
-
-        for cX, cY in centroids:
-            # Find the closest point in the point cloud to the centroid
-            distances = np.linalg.norm(pc_array[:, :2] - np.array([cX, cY]), axis=1)
-            closest_idx = np.argmin(distances)
-            closest_point = pc_array[closest_idx]
-
-            x, y, z = closest_point
-            z_values.append((cX, cY, z))
-
-        return z_values
 
 def main(args=None):
     rclpy.init(args=args)
